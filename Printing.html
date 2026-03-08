@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Printing Cost Estimation - Mondal.io</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --print-primary: #1f3c5b;
+            --print-secondary: #2e6fa3;
+            --print-accent: #4fa3ff;
+            --print-surface: #ffffff;
+            --print-muted: #5d7489;
+            --print-border: #d6e2ee;
+            --print-bg: #f7f9fc;
+            --print-shadow: 0 16px 34px rgba(24, 56, 88, 0.12);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background:
+                radial-gradient(900px 320px at 0% -5%, rgba(79, 163, 255, 0.18), transparent 62%),
+                radial-gradient(900px 340px at 100% 0%, rgba(46, 111, 163, 0.15), transparent 60%),
+                var(--print-bg);
+            color: #17334d;
+        }
+
+        .navbar {
+            width: 100%;
+            margin: 0;
+            border-radius: 0;
+        }
+
+        .page-hero {
+            width: 100%;
+            background: linear-gradient(135deg, #173553 0%, #1f3c5b 48%, #2e6fa3 100%);
+            color: #eef7ff;
+            text-align: center;
+            padding: 82px 20px;
+        }
+
+        .page-hero h1 {
+            margin: 0;
+            font-size: clamp(2rem, 1.3rem + 1.8vw, 3.1rem);
+            letter-spacing: -0.02em;
+        }
+
+        .page-hero p {
+            margin: 14px auto 0;
+            max-width: 760px;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: rgba(238, 247, 255, 0.9);
+        }
+
+        .printing-page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 80px 20px;
+        }
+
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr);
+            gap: 28px;
+            align-items: start;
+        }
+
+        .form-pane {
+            background: var(--print-surface);
+            border: 1px solid var(--print-border);
+            border-radius: 16px;
+            box-shadow: var(--print-shadow);
+            padding: 30px;
+        }
+
+        .form-section {
+            margin-bottom: 60px;
+            padding-left: 18px;
+            border-left: 4px solid rgba(79, 163, 255, 0.8);
+        }
+
+        .form-section:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            margin: 0 0 24px;
+            color: var(--print-primary);
+            font-size: 1.08rem;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #dbe7f2;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-grid-single {
+            grid-template-columns: 1fr;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 8px;
+            color: #2f4e68;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 13px 14px;
+            border: 1px solid #c9d9e7;
+            border-radius: 8px;
+            background: #fbfdff;
+            font-size: 0.94rem;
+            color: #17334d;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--print-accent);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(79, 163, 255, 0.2);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        .radio-item,
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.92rem;
+            color: #33516b;
+        }
+
+        .radio-item label,
+        .checkbox-item label {
+            margin: 0;
+            text-transform: none;
+            letter-spacing: normal;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #35546e;
+            cursor: pointer;
+        }
+
+        .radio-item input,
+        .checkbox-item input {
+            accent-color: var(--print-secondary);
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .process-fields {
+            margin-top: 16px;
+            padding: 18px;
+            border: 1px solid #d6e4f1;
+            border-left: 4px solid var(--print-secondary);
+            border-radius: 10px;
+            background: linear-gradient(180deg, #f8fbff 0%, #f2f8ff 100%);
+        }
+
+        .process-fields.hidden {
+            display: none;
+        }
+
+        .subsection-title {
+            margin: 0 0 16px;
+            color: var(--print-primary);
+            font-size: 0.86rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .button-group {
+            margin-top: 34px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 13px 22px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1f5f99 0%, #2e84d5 100%);
+            color: #ffffff;
+            box-shadow: 0 10px 20px rgba(31, 95, 153, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 26px rgba(31, 95, 153, 0.36);
+        }
+
+        .btn-secondary {
+            background: #edf3f9;
+            color: #2f4d67;
+            border: 1px solid #d3e0ec;
+        }
+
+        .btn-secondary:hover {
+            background: #e4edf6;
+        }
+
+        .error-message {
+            display: none;
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border-left: 4px solid #c23b3b;
+            background: #fff0f0;
+            color: #a13131;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .results-container {
+            display: block;
+            position: sticky;
+            top: 96px;
+            background: var(--print-surface);
+            border: 1px solid var(--print-border);
+            border-radius: 16px;
+            box-shadow: var(--print-shadow);
+            padding: 24px;
+        }
+
+        .results-header {
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #dbe7f3;
+        }
+
+        .results-header h2 {
+            margin: 0;
+            color: var(--print-primary);
+            font-size: 1.25rem;
+            letter-spacing: -0.01em;
+        }
+
+        .total-cost {
+            margin: 12px 0 0;
+            color: #0f2f4d;
+            font-size: 2rem;
+            font-weight: 800;
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: #eaf3ff;
+            border: 1px solid #c7daef;
+        }
+
+        .cost-summary {
+            margin-bottom: 14px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #c8dcef;
+            background: #ffffff;
+        }
+
+        .cost-summary p {
+            margin: 0;
+            color: #1f3f5c;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .breakdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.87rem;
+        }
+
+        .breakdown-table thead {
+            background: #eef4fb;
+        }
+
+        .breakdown-table th {
+            padding: 10px 8px;
+            text-align: left;
+            color: #244667;
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #d6e4f2;
+        }
+
+        .breakdown-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e3edf7;
+            color: #2d4a65;
+        }
+
+        .breakdown-table .amount-col {
+            text-align: right;
+            font-weight: 700;
+            color: #0f3f6a;
+        }
+
+        .breakdown-table .percent-col {
+            text-align: center;
+            color: #2a4d6a;
+        }
+
+        .breakdown-table .total-row {
+            background: #edf5ff;
+            font-weight: 700;
+        }
+
+        .footer {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .calculator-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .results-container {
+                position: static;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .page-hero {
+                padding: 72px 18px;
+            }
+
+            .printing-page {
+                padding: 56px 14px;
+            }
+
+            .form-pane,
+            .results-container {
+                padding: 18px;
+            }
+
+            .form-section {
+                margin-bottom: 44px;
+                padding-left: 12px;
+            }
+
+            .form-grid,
+            .checkbox-group {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="home.html" class="navbar-logo">Mondal.io</a>
+        <div class="navbar-links">
+            <a href="home.html">Home</a>
+            <a href="Printing.html">Printing Estimation</a>
+            <a href="Packaging.html">Packaging Estimation</a>
+            <a href="home.html#about">About</a>
+            <a href="home.html#contact">Contact Us</a>
+        </div>
+    </nav>
+
+    <section class="page-hero">
+        <h1>Printing Cost Estimation</h1>
+        <p>Professional offset printing cost calculator using industry-standard formulas.</p>
+    </section>
+
+    <main class="printing-page">
+        <div class="calculator-layout">
+            <section class="form-pane">
+                <div id="printingError" class="error-message"></div>
+
+                <form id="printingForm">
+                    <div class="form-section">
+                        <h3 class="section-title">Step 1 - Product Details</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="productType">Product Type *</label>
+                                <select id="productType" required>
+                                    <option value="">Select Product Type</option>
+                                    <option value="document">Document</option>
+                                    <option value="brochure">Brochure</option>
+                                    <option value="poster">Poster</option>
+                                    <option value="magazine">Magazine</option>
+                                    <option value="flyer">Flyer</option>
+                                    <option value="business-card">Business Card</option>
+                                    <option value="booklet">Booklet</option>
+                                    <option value="book">Book</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="quantity">Quantity (Units) *</label>
+                                <input type="number" id="quantity" min="1" value="1000" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="numPages">Number of Pages *</label>
+                                <input type="number" id="numPages" min="1" value="4" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">Step 2 - Printing Settings</h3>
+                        <div class="form-grid form-grid-single">
+                            <div class="form-group">
+                                <label for="printProcess">Printing Process *</label>
+                                <select id="printProcess" required onchange="updateProcessFields()">
+                                    <option value="">Select Printing Process</option>
+                                    <option value="offset">Offset</option>
+                                    <option value="digital">Digital</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="offsetFields" class="process-fields hidden">
+                            <div class="subsection-title">Offset Printing Specifications</div>
+
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="paperSize">Paper Size *</label>
+                                    <select id="paperSize" class="offset-field" required>
+                                        <option value="">Select Paper Size</option>
+                                        <option value="a4">A4 (210x297 mm)</option>
+                                        <option value="a3">A3 (297x420 mm)</option>
+                                        <option value="a5">A5 (148x210 mm)</option>
+                                        <option value="custom">Custom Size</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="paperType">Paper Type *</label>
+                                    <select id="paperType" class="offset-field" required>
+                                        <option value="">Select Paper Type</option>
+                                        <option value="plain">Plain Paper</option>
+                                        <option value="art">Art Paper</option>
+                                        <option value="coated">Coated Paper</option>
+                                        <option value="bond">Bond Paper</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="paperGSM">Paper GSM (Weight) *</label>
+                                    <select id="paperGSM" class="offset-field" required>
+                                        <option value="">Select GSM</option>
+                                        <option value="60">60 GSM</option>
+                                        <option value="80">80 GSM</option>
+                                        <option value="100">100 GSM</option>
+                                        <option value="150">150 GSM</option>
+                                        <option value="180">180 GSM</option>
+                                        <option value="250">250 GSM</option>
+                                        <option value="300">300 GSM</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Printing Side *</label>
+                                    <div class="radio-group">
+                                        <div class="radio-item">
+                                            <input type="radio" id="printSingleSide" name="printSide" value="single" checked>
+                                            <label for="printSingleSide">Single Side</label>
+                                        </div>
+                                        <div class="radio-item">
+                                            <input type="radio" id="printDoubleSide" name="printSide" value="double">
+                                            <label for="printDoubleSide">Double Side</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="colorMode">Color Mode *</label>
+                                    <select id="colorMode" class="offset-field" required>
+                                        <option value="">Select Color Mode</option>
+                                        <option value="bw">Black and White (1 Color)</option>
+                                        <option value="2color">2 Color</option>
+                                        <option value="cmyk">CMYK (Full Color - 4 Color)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="offsetInkType">Ink Type *</label>
+                                    <select id="offsetInkType" class="offset-field" required>
+                                        <option value="">Select Ink Type</option>
+                                        <option value="oil-based">Oil-Based Offset Ink</option>
+                                        <option value="uv">UV Offset Ink</option>
+                                        <option value="soy-based">Soy Based Ink</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">Step 3 - Post Press Finishing</h3>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label>Binding Type (Optional)</label>
+                            <div class="checkbox-group">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="bindingSaddle" value="saddle">
+                                    <label for="bindingSaddle">Saddle Stitch</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="bindingPerfect" value="perfect">
+                                    <label for="bindingPerfect">Perfect Binding</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="bindingSpiral" value="spiral">
+                                    <label for="bindingSpiral">Spiral Binding</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Lamination (Optional)</label>
+                                <div class="radio-group">
+                                    <div class="radio-item">
+                                        <input type="radio" id="laminationNo" name="lamination" value="none" checked>
+                                        <label for="laminationNo">None</label>
+                                    </div>
+                                    <div class="radio-item">
+                                        <input type="radio" id="laminationGloss" name="lamination" value="gloss">
+                                        <label for="laminationGloss">Gloss</label>
+                                    </div>
+                                    <div class="radio-item">
+                                        <input type="radio" id="laminationMatte" name="lamination" value="matte">
+                                        <label for="laminationMatte">Matte</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="coverType">Cover Type (Optional)</label>
+                                <select id="coverType">
+                                    <option value="none">None</option>
+                                    <option value="cardboard">Cardboard</option>
+                                    <option value="hardcover">Hard Cover</option>
+                                    <option value="thick">Thick Cover</option>
+                                    <option value="thin">Thin Cover</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn btn-primary" onclick="calculatePrintingCost()">Calculate Cost</button>
+                        <button type="reset" class="btn btn-secondary">Clear Form</button>
+                    </div>
+                </form>
+            </section>
+
+            <aside id="printingResults" class="results-container">
+                <div class="results-header">
+                    <h2>Cost Summary</h2>
+                    <div class="total-cost" id="printingTotalCost">Rs0.00</div>
+                </div>
+
+                <div class="cost-summary">
+                    <p id="printingCostPerUnit">Cost per Unit: Rs0.00</p>
+                </div>
+
+                <table class="breakdown-table">
+                    <thead>
+                        <tr>
+                            <th>Cost Category</th>
+                            <th>Amount</th>
+                            <th>%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="printingBreakdownTable"></tbody>
+                </table>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <h4>Mondal.io Printing &amp; Packaging Cost Estimation System</h4>
+        <p>Professional MIS frontend for accurate cost calculations | &copy; 2026</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
