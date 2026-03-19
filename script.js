@@ -81,11 +81,32 @@ const substrateCosts = {
 // PAPER SIZE AREAS (in mm²)
 // ============================================================
 const paperSizeAreas = {
-    a4: 62370,
+    a1: 499554,
+    a2: 249480,
     a3: 124740,
-    a5: 31185,
-    custom: 50000
+    a4: 62370,
+    a5: 31080,
+    a6: 15540
 };
+
+function getSelectedPaperAreaInMm2(paperSize) {
+    if (paperSize === 'custom') {
+        const customPaperWidth = parseFloat(document.getElementById('customPaperWidth')?.value);
+        const customPaperHeight = parseFloat(document.getElementById('customPaperHeight')?.value);
+
+        if (!Number.isFinite(customPaperWidth) || !Number.isFinite(customPaperHeight) || customPaperWidth <= 0 || customPaperHeight <= 0) {
+            throw new Error('Please enter valid custom paper width and height in mm');
+        }
+
+        return customPaperWidth * customPaperHeight;
+    }
+
+    if (!(paperSize in paperSizeAreas)) {
+        throw new Error('Please select a valid paper size');
+    }
+
+    return paperSizeAreas[paperSize];
+}
 
 // ============================================================
 // SUBSTRATE SIZE CALCULATION
@@ -172,11 +193,12 @@ function calculateOffsetPrintingCost(quantity, numPages) {
 
     // 4. SHEET COST (Paper)
     // Formula: W = (L × W / 10000) × (GSM / 1000) × Q × (1 + Wastage)
-    const areaPerPage = paperSizeAreas[paperSize] || 62370;
+    const areaPerPage = getSelectedPaperAreaInMm2(paperSize);
+    const areaRatioVsA4 = areaPerPage / paperSizeAreas.a4;
     const costPerSheet = offsetCosts.paperCosts[paperGSM];
     const wastagePercentage = 0.05; // 5% wastage
     const totalSheets = ((quantity * numPages) / 2) * (1 + wastagePercentage);
-    breakdown['Sheet Cost'] = totalSheets * costPerSheet;
+    breakdown['Sheet Cost'] = totalSheets * costPerSheet * areaRatioVsA4;
 
     // 5. NUMBER OF SHEETS USED
     breakdown['Number of Sheets Used'] = Math.ceil(totalSheets);
@@ -271,6 +293,27 @@ function updateProcessFields() {
         offsetFields.classList.remove('hidden');
     } else {
         offsetFields.classList.add('hidden');
+    }
+
+    updatePaperSizeFields();
+}
+
+function updatePaperSizeFields() {
+    const paperSizeSelect = document.getElementById('paperSize');
+    const customPaperSizeFields = document.getElementById('customPaperSizeFields');
+    const customPaperWidth = document.getElementById('customPaperWidth');
+    const customPaperHeight = document.getElementById('customPaperHeight');
+
+    if (!paperSizeSelect || !customPaperSizeFields || !customPaperWidth || !customPaperHeight) return;
+
+    const isCustomSize = paperSizeSelect.value === 'custom';
+    customPaperSizeFields.style.display = isCustomSize ? 'grid' : 'none';
+    customPaperWidth.required = isCustomSize;
+    customPaperHeight.required = isCustomSize;
+
+    if (!isCustomSize) {
+        customPaperWidth.value = '';
+        customPaperHeight.value = '';
     }
 }
 
@@ -621,6 +664,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (typeof updateProcessFields === 'function') {
                     updateProcessFields();
                 }
+                if (typeof updatePaperSizeFields === 'function') {
+                    updatePaperSizeFields();
+                }
             }, 0);
         });
     }
@@ -653,5 +699,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }, 0);
         });
+    }
+
+    if (typeof updatePaperSizeFields === 'function') {
+        updatePaperSizeFields();
     }
 });

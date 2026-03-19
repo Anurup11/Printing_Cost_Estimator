@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Printing Cost Estimation - Mondal.io</title>
+    <title>Printing Cost Estimation - ADR</title>
     <link rel="stylesheet" href="style.css">
     <style>
         :root {
@@ -317,17 +317,17 @@
         }
 
         .breakdown-table thead {
-            background: #eef4fb;
+            background: #1f4e79;
         }
 
         .breakdown-table th {
             padding: 10px 8px;
             text-align: left;
-            color: #244667;
+            color: #ffffff;
             font-size: 0.74rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            border-bottom: 1px solid #d6e4f2;
+            border-bottom: 1px solid #153651;
         }
 
         .breakdown-table td {
@@ -348,8 +348,12 @@
         }
 
         .breakdown-table .total-row {
-            background: #edf5ff;
+            background: #1f4e79;
             font-weight: 700;
+        }
+
+        .breakdown-table .total-row td {
+            color: #ffffff;
         }
 
         .footer {
@@ -403,13 +407,13 @@
 </head>
 <body>
     <nav class="navbar">
-        <a href="home.html" class="navbar-logo">Mondal.io</a>
+        <a href="/" class="navbar-logo">ADR</a>
         <div class="navbar-links">
-            <a href="home.html">Home</a>
+            <a href="/">Home</a>
             <a href="Printing.html">Printing Estimation</a>
             <a href="Packaging.html">Packaging Estimation</a>
-            <a href="home.html#about">About</a>
-            <a href="home.html#contact">Contact Us</a>
+            <a href="/#about">About</a>
+            <a href="/#contact">Contact Us</a>
         </div>
     </nav>
 
@@ -471,11 +475,14 @@
                             <div class="form-grid">
                                 <div class="form-group">
                                     <label for="paperSize">Paper Size *</label>
-                                    <select id="paperSize" class="offset-field" required>
+                                    <select id="paperSize" class="offset-field" required onchange="updatePaperSizeFields()">
                                         <option value="">Select Paper Size</option>
-                                        <option value="a4">A4 (210x297 mm)</option>
+                                        <option value="a1">A1 (594x841 mm)</option>
+                                        <option value="a2">A2 (420x594 mm)</option>
                                         <option value="a3">A3 (297x420 mm)</option>
+                                        <option value="a4">A4 (210x297 mm)</option>
                                         <option value="a5">A5 (148x210 mm)</option>
+                                        <option value="a6">A6 (105x148 mm)</option>
                                         <option value="custom">Custom Size</option>
                                     </select>
                                 </div>
@@ -501,6 +508,17 @@
                                         <option value="250">250 GSM</option>
                                         <option value="300">300 GSM</option>
                                     </select>
+                                </div>
+                            </div>
+
+                            <div id="customPaperSizeFields" class="form-grid" style="display: none;">
+                                <div class="form-group">
+                                    <label for="customPaperWidth">Custom Width (mm) *</label>
+                                    <input type="number" id="customPaperWidth" min="1" step="0.1" placeholder="e.g., 320">
+                                </div>
+                                <div class="form-group">
+                                    <label for="customPaperHeight">Custom Height (mm) *</label>
+                                    <input type="number" id="customPaperHeight" min="1" step="0.1" placeholder="e.g., 450">
                                 </div>
                             </div>
 
@@ -624,7 +642,7 @@
     </main>
 
     <footer class="footer">
-        <h4>Mondal.io Printing &amp; Packaging Cost Estimation System</h4>
+        <h4>ADR Printing &amp; Packaging Cost Estimation System</h4>
         <p>Professional MIS frontend for accurate cost calculations | &copy; 2026</p>
     </footer>
 
