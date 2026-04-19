@@ -269,6 +269,7 @@
             font-weight: 700;
         }
 
+
         .breakdown-table {
             width: 100%;
             border-collapse: collapse;
@@ -367,6 +368,8 @@
             <a href="/">Home</a>
             <a href="Printing.html">Printing Estimation</a>
             <a href="Packaging.html">Packaging Estimation</a>
+            <a href="paper.html">Paper Estimation</a>
+            <a href="ink.html">Ink Estimation</a>
             <a href="/#about">About</a>
             <a href="/#contact">Contact Us</a>
         </div>
@@ -561,11 +564,11 @@
             <aside id="packagingResults" class="results-container">
                 <div class="results-header">
                     <h2>Cost Summary</h2>
-                    <div class="total-cost" id="packagingTotalCost">₹0.00</div>
+                    <div class="total-cost" id="packagingTotalCost">Rs0.00</div>
                 </div>
 
                 <div class="cost-summary">
-                    <p id="packagingCostPerUnit">Cost per Unit: ₹0.00</p>
+                    <p id="packagingCostPerUnit">Cost per Unit: Rs0.00</p>
                 </div>
 
                 <table class="breakdown-table">
@@ -589,12 +592,239 @@
 
     <script src="script.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            if (typeof updateSubstrateBasisField === 'function') {
-                updateSubstrateBasisField();
+        function getPackagingNumberValue(id) {
+            const element = document.getElementById(id);
+            return Number.parseFloat(element?.value || '0') || 0;
+        }
+
+        function formatPackagingCurrency(value) {
+            return `Rs${value.toFixed(2)}`;
+        }
+
+        function showPackagingError(message) {
+            const box = document.getElementById('packagingError');
+            box.textContent = message;
+            box.classList.add('show');
+        }
+
+        function clearPackagingError() {
+            const box = document.getElementById('packagingError');
+            box.textContent = '';
+            box.classList.remove('show');
+        }
+
+        function resetPackagingResults() {
+            document.getElementById('packagingTotalCost').textContent = 'Rs0.00';
+            document.getElementById('packagingCostPerUnit').textContent = 'Cost per Unit: Rs0.00';
+            document.getElementById('packagingBreakdownTable').innerHTML = '';
+            clearPackagingError();
+        }
+
+        function parsePackagingSize(sizeText) {
+            const parts = (sizeText || '').trim().toLowerCase().split('x').map((part) => Number.parseFloat(part.trim()));
+            if (parts.length !== 2 || parts.some((part) => !Number.isFinite(part) || part <= 0)) {
+                throw new Error('Enter the flat size in WidthxHeight format, for example 100x200.');
             }
+
+            return { width: parts[0], height: parts[1] };
+        }
+
+        function updateSubstrateBasisField() {
+            const substrateType = document.getElementById('substrateType')?.value;
+            const gsmInput = document.getElementById('substrateGSM');
+            const thicknessSelect = document.getElementById('substrateThickness');
+            const label = document.getElementById('substrateBasisLabel');
+            const thicknessOptions = [
+                { value: '12', label: '12 microns' },
+                { value: '20', label: '20 microns' },
+                { value: '30', label: '30 microns' },
+                { value: '40', label: '40 microns' }
+            ];
+
+            const useThickness = substrateType === 'plastic' || substrateType === 'aluminum';
+
+            if (useThickness) {
+                label.textContent = 'Substrate Thickness (Microns) *';
+                gsmInput.style.display = 'none';
+                gsmInput.disabled = true;
+                thicknessSelect.style.display = 'block';
+                thicknessSelect.disabled = false;
+                thicknessSelect.required = true;
+
+                if (!thicknessSelect.options.length || thicknessSelect.options.length === 1) {
+                    thicknessSelect.innerHTML = '<option value="">Select Thickness (microns)</option>' +
+                        thicknessOptions.map((option) => `<option value="${option.value}">${option.label}</option>`).join('');
+                }
+            } else {
+                label.textContent = 'Substrate GSM (Weight) *';
+                gsmInput.style.display = 'block';
+                gsmInput.disabled = false;
+                thicknessSelect.style.display = 'none';
+                thicknessSelect.disabled = true;
+                thicknessSelect.required = false;
+            }
+        }
+
+        function updatePackagingProcessFields() {
+            const process = document.getElementById('packagingProcess')?.value;
+            const flexoFields = document.getElementById('flexographyFields');
+            const gravureFields = document.getElementById('gravureFields');
+            const flexoInputs = document.querySelectorAll('.flexo-field');
+            const gravureInputs = document.querySelectorAll('.gravure-field');
+
+            const isFlexo = process === 'flexography';
+            const isGravure = process === 'gravure';
+
+            flexoFields.classList.toggle('hidden', !isFlexo);
+            gravureFields.classList.toggle('hidden', !isGravure);
+
+            flexoInputs.forEach((input) => {
+                input.required = isFlexo;
+                input.disabled = !isFlexo;
+            });
+
+            gravureInputs.forEach((input) => {
+                input.required = isGravure;
+                input.disabled = !isGravure;
+            });
+        }
+
+        function getPackagingSubstrateValue() {
+            const substrateType = document.getElementById('substrateType').value;
+            if (substrateType === 'plastic' || substrateType === 'aluminum') {
+                return getPackagingNumberValue('substrateThickness');
+            }
+
+            return getPackagingNumberValue('substrateGSM');
+        }
+
+        function calculatePackagingCost() {
+            try {
+                clearPackagingError();
+
+                const substrateType = document.getElementById('substrateType').value;
+                const process = document.getElementById('packagingProcess').value;
+                const quantity = getPackagingNumberValue('quantity');
+                const numColors = getPackagingNumberValue('numColors');
+                const basisValue = getPackagingSubstrateValue();
+                const bleedPercent = getPackagingNumberValue('bleedRequirement');
+                const size = parsePackagingSize(document.getElementById('flatSize').value);
+
+                if (!substrateType || !process) {
+                    throw new Error('Select the substrate type and packaging process.');
+                }
+
+                if (quantity <= 0 || numColors <= 0 || basisValue <= 0) {
+                    throw new Error('Quantity, substrate basis, and number of colors must be greater than zero.');
+                }
+
+                const areaSqM = (size.width / 1000) * (size.height / 1000);
+                const effectiveAreaSqM = areaSqM * quantity * (1 + bleedPercent / 100);
+
+                const materialRates = {
+                    aluminum: 165,
+                    paperboard: 78,
+                    cardboard: 69,
+                    plastic: 142
+                };
+
+                const substrateFactor = substrateType === 'plastic' || substrateType === 'aluminum'
+                    ? basisValue / 25
+                    : basisValue / 100;
+                const substrateCost = effectiveAreaSqM * (materialRates[substrateType] || 75) * substrateFactor;
+
+                let processCost = 0;
+                let cylinderOrPlateCost = 0;
+
+                if (process === 'flexography') {
+                    const lpiRate = {
+                        low: 1,
+                        mid: 1.15,
+                        high: 1.3
+                    }[document.getElementById('flexoAniloxLPI').value] || 1;
+                    const engravingRate = document.getElementById('flexoEngravingType').value === 'laser' ? 1.2 : 1;
+                    const cellRate = {
+                        low: 0.95,
+                        mid: 1,
+                        high: 1.1
+                    }[document.getElementById('flexoCellVolume').value] || 1;
+                    const inkRate = {
+                        water: 1,
+                        solvent: 1.08,
+                        uv: 1.22
+                    }[document.getElementById('flexoInkType').value] || 1;
+                    const efficiency = Math.max(getPackagingNumberValue('flexoTransferEfficiency'), 1) / 100;
+
+                    processCost = effectiveAreaSqM * 7.5 * numColors * lpiRate * engravingRate * cellRate * inkRate / efficiency;
+                    cylinderOrPlateCost = numColors * 950;
+                } else {
+                    const cylinderTypeRate = document.getElementById('gravureCylinderType').value === 'laser' ? 1.18 : 1;
+                    const cylinders = getPackagingNumberValue('gravureNumCylinders');
+                    const documentationCost = getPackagingNumberValue('gravureDocumentationCost');
+
+                    processCost = effectiveAreaSqM * 8.8 * numColors * cylinderTypeRate;
+                    cylinderOrPlateCost = cylinders * 2400 + documentationCost;
+                }
+
+                const dieCost = getPackagingNumberValue('steelRuleDieCost');
+                const embossingCost = getPackagingNumberValue('embossingBlockCost');
+                const spotUvCost = getPackagingNumberValue('spotUVPlateCost');
+                const setupHours = getPackagingNumberValue('machineSetupTime') / 60;
+                const runHours = (quantity * getPackagingNumberValue('machineRunTime')) / 3600;
+                const machineCost = (setupHours + runHours) * getPackagingNumberValue('machineHourlyRate');
+
+                const totalCost = substrateCost + processCost + cylinderOrPlateCost + dieCost + embossingCost + spotUvCost + machineCost;
+                const unitCost = totalCost / quantity;
+
+                const rows = [
+                    { label: 'Substrate', value: substrateCost },
+                    { label: 'Printing Process', value: processCost },
+                    { label: process === 'flexography' ? 'Plates' : 'Cylinders', value: cylinderOrPlateCost },
+                    { label: 'Steel Rule Die', value: dieCost },
+                    { label: 'Embossing / Foiling', value: embossingCost },
+                    { label: 'Spot UV', value: spotUvCost },
+                    { label: 'Machine Cost', value: machineCost }
+                ];
+
+                document.getElementById('packagingBreakdownTable').innerHTML = rows.map((row) => {
+                    const percent = totalCost > 0 ? (row.value / totalCost) * 100 : 0;
+                    return `
+                        <tr>
+                            <td>${row.label}</td>
+                            <td class="amount-col">${formatPackagingCurrency(row.value)}</td>
+                            <td class="percent-col">${percent.toFixed(1)}%</td>
+                        </tr>
+                    `;
+                }).join('') + `
+                    <tr class="total-row">
+                        <td>Total</td>
+                        <td class="amount-col">${formatPackagingCurrency(totalCost)}</td>
+                        <td class="percent-col">100%</td>
+                    </tr>
+                `;
+
+                document.getElementById('packagingTotalCost').textContent = formatPackagingCurrency(totalCost);
+                document.getElementById('packagingCostPerUnit').textContent = `Cost per Unit: ${formatPackagingCurrency(unitCost)}`;
+            } catch (error) {
+                resetPackagingResults();
+                showPackagingError(error.message || 'Unable to calculate packaging cost.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('packagingForm');
+
+            updateSubstrateBasisField();
+            updatePackagingProcessFields();
+
+            form?.addEventListener('reset', function () {
+                window.setTimeout(function () {
+                    updateSubstrateBasisField();
+                    updatePackagingProcessFields();
+                    resetPackagingResults();
+                }, 0);
+            });
         });
     </script>
 </body>
 </html>
-

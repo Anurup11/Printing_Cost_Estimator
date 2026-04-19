@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ink Cost Estimation - ADR</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --print-primary: #1f3c5b;
+            --print-secondary: #2e6fa3;
+            --print-accent: #4fa3ff;
+            --print-surface: #ffffff;
+            --print-muted: #5d7489;
+            --print-border: #d6e2ee;
+            --print-bg: #f7f9fc;
+            --print-shadow: 0 16px 34px rgba(24, 56, 88, 0.12);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background:
+                radial-gradient(900px 320px at 0% -5%, rgba(79, 163, 255, 0.18), transparent 62%),
+                radial-gradient(900px 340px at 100% 0%, rgba(46, 111, 163, 0.15), transparent 60%),
+                var(--print-bg);
+            color: #17334d;
+        }
+
+        .navbar {
+            width: 100%;
+            margin: 0;
+            border-radius: 0;
+        }
+
+        .page-hero {
+            width: 100%;
+            background: linear-gradient(135deg, #173553 0%, #1f3c5b 48%, #2e6fa3 100%);
+            color: #eef7ff;
+            text-align: center;
+            padding: 82px 20px;
+        }
+
+        .page-hero h1 {
+            margin: 0;
+            font-size: clamp(2rem, 1.3rem + 1.8vw, 3.1rem);
+            letter-spacing: -0.02em;
+        }
+
+        .page-hero p {
+            margin: 14px auto 0;
+            max-width: 760px;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: rgba(238, 247, 255, 0.9);
+        }
+
+        .printing-page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 80px 20px;
+        }
+
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr);
+            gap: 28px;
+            align-items: start;
+        }
+
+        .form-pane {
+            background: var(--print-surface);
+            border: 1px solid var(--print-border);
+            border-radius: 16px;
+            box-shadow: var(--print-shadow);
+            padding: 30px;
+        }
+
+        .form-section {
+            margin-bottom: 60px;
+            padding-left: 18px;
+            border-left: 4px solid rgba(79, 163, 255, 0.8);
+        }
+
+        .form-section:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            margin: 0 0 24px;
+            color: var(--print-primary);
+            font-size: 1.08rem;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #dbe7f2;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 8px;
+            color: #2f4e68;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 13px 14px;
+            border: 1px solid #c9d9e7;
+            border-radius: 8px;
+            background: #fbfdff;
+            font-size: 0.94rem;
+            color: #17334d;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--print-accent);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(79, 163, 255, 0.2);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.92rem;
+            color: #33516b;
+        }
+
+        .radio-item label {
+            margin: 0;
+            text-transform: none;
+            letter-spacing: normal;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #35546e;
+            cursor: pointer;
+        }
+
+        .radio-item input {
+            accent-color: var(--print-secondary);
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .button-group {
+            margin-top: 34px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 13px 22px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1f5f99 0%, #2e84d5 100%);
+            color: #ffffff;
+            box-shadow: 0 10px 20px rgba(31, 95, 153, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 26px rgba(31, 95, 153, 0.36);
+        }
+
+        .btn-secondary {
+            background: #edf3f9;
+            color: #2f4d67;
+            border: 1px solid #d3e0ec;
+        }
+
+        .btn-secondary:hover {
+            background: #e4edf6;
+        }
+
+        .error-message {
+            display: none;
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border-left: 4px solid #c23b3b;
+            background: #fff0f0;
+            color: #a13131;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .results-container {
+            display: block;
+            position: sticky;
+            top: 96px;
+            background: var(--print-surface);
+            border: 1px solid var(--print-border);
+            border-radius: 16px;
+            box-shadow: var(--print-shadow);
+            padding: 24px;
+        }
+
+        .results-header {
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #dbe7f3;
+        }
+
+        .results-header h2 {
+            margin: 0;
+            color: var(--print-primary);
+            font-size: 1.25rem;
+            letter-spacing: -0.01em;
+        }
+
+        .total-cost {
+            margin: 12px 0 0;
+            color: #0f2f4d;
+            font-size: 2rem;
+            font-weight: 800;
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: #eaf3ff;
+            border: 1px solid #c7daef;
+        }
+
+        .cost-summary {
+            margin-bottom: 14px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #c8dcef;
+            background: #ffffff;
+        }
+
+        .cost-summary p {
+            margin: 0;
+            color: #1f3f5c;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+
+        .breakdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.87rem;
+        }
+
+        .breakdown-table thead {
+            background: #1f4e79;
+        }
+
+        .breakdown-table th {
+            padding: 10px 8px;
+            text-align: left;
+            color: #ffffff;
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #153651;
+        }
+
+        .breakdown-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e3edf7;
+            color: #2d4a65;
+        }
+
+        .breakdown-table .amount-col {
+            text-align: right;
+            font-weight: 700;
+            color: #0f3f6a;
+        }
+
+        .breakdown-table .percent-col {
+            text-align: center;
+            color: #2a4d6a;
+        }
+
+        .breakdown-table .total-row {
+            background: #1f4e79;
+            font-weight: 700;
+        }
+
+        .breakdown-table .total-row td {
+            color: #ffffff;
+        }
+
+        .footer {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .calculator-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .results-container {
+                position: static;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .page-hero {
+                padding: 72px 18px;
+            }
+
+            .printing-page {
+                padding: 56px 14px;
+            }
+
+            .form-pane,
+            .results-container {
+                padding: 18px;
+            }
+
+            .form-section {
+                margin-bottom: 44px;
+                padding-left: 12px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-logo">ADR</a>
+        <div class="navbar-links">
+            <a href="/">Home</a>
+            <a href="Printing.html">Printing Estimation</a>
+            <a href="Packaging.html">Packaging Estimation</a>
+            <a href="paper.html">Paper Estimation</a>
+            <a href="ink.html">Ink Estimation</a>
+            <a href="/#about">About</a>
+            <a href="/#contact">Contact Us</a>
+        </div>
+    </nav>
+
+    <section class="page-hero">
+        <h1>Ink Cost Estimation</h1>
+        <p>Estimate ink usage and total ink budget using production inputs.</p>
+    </section>
+
+    <main class="printing-page">
+        <div class="calculator-layout">
+            <section class="form-pane">
+                <div id="inkError" class="error-message"></div>
+
+                <form id="inkForm">
+                    <div class="form-section">
+                        <h3 class="section-title">Step 1 - Job Inputs</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="inkPrintingProcess">Printing Process *</label>
+                                <select id="inkPrintingProcess" required>
+                                    <option value="offset">Offset</option>
+                                    <option value="flexography">Flexography</option>
+                                    <option value="gravure">Gravure</option>
+                                    <option value="digital">Digital</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="inkPaperType">Paper Type *</label>
+                                <select id="inkPaperType" required>
+                                    <option value="plain">Plain Paper</option>
+                                    <option value="coated">Coated Paper</option>
+                                    <option value="art">Art Paper</option>
+                                    <option value="kraft">Kraft Paper</option>
+                                    <option value="paperboard">Paperboard</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="inkQuantity">Quantity (Units) *</label>
+                                <input type="number" id="inkQuantity" min="1" value="10000" required>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="inkPageSize">Page Size *</label>
+                                <select id="inkPageSize" required onchange="updateInkPageSizeFields()">
+                                    <option value="a4" selected>A4 (210 x 297 mm)</option>
+                                    <option value="a3">A3 (297 x 420 mm)</option>
+                                    <option value="a5">A5 (148 x 210 mm)</option>
+                                    <option value="a6">A6 (105 x 148 mm)</option>
+                                    <option value="letter">Letter (216 x 279 mm)</option>
+                                    <option value="legal">Legal (216 x 356 mm)</option>
+                                    <option value="custom">Custom Size</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="inkPaperGSM">Paper GSM *</label>
+                                <select id="inkPaperGSM" required>
+                                    <option value="60">60 GSM</option>
+                                    <option value="80" selected>80 GSM</option>
+                                    <option value="100">100 GSM</option>
+                                    <option value="130">130 GSM</option>
+                                    <option value="170">170 GSM</option>
+                                    <option value="220">220 GSM</option>
+                                    <option value="300">300 GSM</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="inkCustomSizeFields" class="form-grid" style="display: none;">
+                            <div class="form-group">
+                                <label for="inkWidth">Custom Width (mm) *</label>
+                                <input type="number" id="inkWidth" min="1" step="0.1" value="210">
+                            </div>
+                            <div class="form-group">
+                                <label for="inkHeight">Custom Height (mm) *</label>
+                                <input type="number" id="inkHeight" min="1" step="0.1" value="297">
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="inkSideCount">No. of Side *</label>
+                                <select id="inkSideCount" required>
+                                    <option value="single">Single Side</option>
+                                    <option value="double">Double Side</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="inkColorMode">Colour Mode *</label>
+                                <select id="inkColorMode" required>
+                                    <option value="bw">Black and White (1 Colour)</option>
+                                    <option value="2color">2 Colour</option>
+                                    <option value="cmyk" selected>CMYK (4 Colour)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="inkCoverage">Average Coverage (%) *</label>
+                                <input type="number" id="inkCoverage" min="1" max="100" step="0.1" value="65" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">Step 2 - Ink Parameters</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="inkType">Ink Type *</label>
+                                <select id="inkType" required>
+                                    <option value="water">Water Based</option>
+                                    <option value="solvent">Solvent Based</option>
+                                    <option value="uv">UV Ink</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="inkCostPerKg">Ink Cost (Rs/kg) *</label>
+                                <input type="number" id="inkCostPerKg" min="1" step="0.01" value="300" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="inkLaydown">Ink Laydown (g/m2) *</label>
+                                <input type="number" id="inkLaydown" min="0.1" step="0.1" value="1.8" required>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="inkTransferEfficiency">Transfer Efficiency (%) *</label>
+                                <input type="number" id="inkTransferEfficiency" min="1" max="100" step="0.1" value="88" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="inkWastage">Wastage (%) *</label>
+                                <input type="number" id="inkWastage" min="0" max="100" step="0.1" value="5" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="inkSetupKg">Setup Ink (kg)</label>
+                                <input type="number" id="inkSetupKg" min="0" step="0.01" value="0.5">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">Step 3 - Additional Charges</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="inkSetupCost">Setup / Labor Cost (Rs)</label>
+                                <input type="number" id="inkSetupCost" min="0" step="0.01" value="1200">
+                            </div>
+                            <div class="form-group">
+                                <label for="inkAdditivesCost">Additives / Solvent Cost (Rs)</label>
+                                <input type="number" id="inkAdditivesCost" min="0" step="0.01" value="350">
+                            </div>
+                            <div class="form-group">
+                                <label for="inkOverheadPercent">Overhead (%)</label>
+                                <input type="number" id="inkOverheadPercent" min="0" max="100" step="0.1" value="8">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn btn-primary" onclick="calculateInkCost()">Calculate Cost</button>
+                        <button type="reset" class="btn btn-secondary">Clear Form</button>
+                    </div>
+                </form>
+            </section>
+
+            <aside id="inkResults" class="results-container">
+                <div class="results-header">
+                    <h2>Cost Summary</h2>
+                    <div class="total-cost" id="inkTotalCost">Rs0.00</div>
+                </div>
+
+                <div class="cost-summary">
+                    <p id="inkCostPerUnit">Cost per Unit: Rs0.00</p>
+                </div>
+
+                <table class="breakdown-table">
+                    <thead>
+                        <tr>
+                            <th>Cost Category</th>
+                            <th>Amount</th>
+                            <th>%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inkBreakdownTable"></tbody>
+                </table>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <h4>ADR Printing &amp; Packaging Cost Estimation System</h4>
+        <p>Professional MIS frontend for accurate cost calculations | &copy; 2026</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        function getInkNumberValue(id) {
+            const element = document.getElementById(id);
+            return Number.parseFloat(element?.value || '0') || 0;
+        }
+
+        function formatInkCurrency(value) {
+            return `Rs${value.toFixed(2)}`;
+        }
+
+        function showInkError(message) {
+            const box = document.getElementById('inkError');
+            box.textContent = message;
+            box.classList.add('show');
+        }
+
+        function clearInkError() {
+            const box = document.getElementById('inkError');
+            box.textContent = '';
+            box.classList.remove('show');
+        }
+
+        function resetInkResults() {
+            document.getElementById('inkTotalCost').textContent = 'Rs0.00';
+            document.getElementById('inkCostPerUnit').textContent = 'Cost per Unit: Rs0.00';
+            document.getElementById('inkBreakdownTable').innerHTML = '';
+            clearInkError();
+        }
+
+        function updateInkPageSizeFields() {
+            const isCustom = document.getElementById('inkPageSize')?.value === 'custom';
+            const customFields = document.getElementById('inkCustomSizeFields');
+            const width = document.getElementById('inkWidth');
+            const height = document.getElementById('inkHeight');
+
+            customFields.style.display = isCustom ? 'grid' : 'none';
+            width.required = isCustom;
+            height.required = isCustom;
+            width.disabled = !isCustom;
+            height.disabled = !isCustom;
+        }
+
+        function getInkSheetArea() {
+            const sizes = {
+                a3: { width: 297, height: 420 },
+                a4: { width: 210, height: 297 },
+                a5: { width: 148, height: 210 },
+                a6: { width: 105, height: 148 },
+                letter: { width: 216, height: 279 },
+                legal: { width: 216, height: 356 }
+            };
+
+            const pageSize = document.getElementById('inkPageSize').value;
+            const size = pageSize === 'custom'
+                ? { width: getInkNumberValue('inkWidth'), height: getInkNumberValue('inkHeight') }
+                : sizes[pageSize];
+
+            if (!size || size.width <= 0 || size.height <= 0) {
+                throw new Error('Select a valid page size for the ink estimate.');
+            }
+
+            return (size.width / 1000) * (size.height / 1000);
+        }
+
+        function calculateInkCost() {
+            try {
+                clearInkError();
+
+                const quantity = getInkNumberValue('inkQuantity');
+                const coverage = getInkNumberValue('inkCoverage');
+                const laydown = getInkNumberValue('inkLaydown');
+                const transferEfficiency = getInkNumberValue('inkTransferEfficiency');
+                const wastage = getInkNumberValue('inkWastage');
+                const setupKg = getInkNumberValue('inkSetupKg');
+                const inkCostPerKg = getInkNumberValue('inkCostPerKg');
+
+                if (quantity <= 0 || coverage <= 0 || laydown <= 0 || transferEfficiency <= 0 || inkCostPerKg <= 0) {
+                    throw new Error('Quantity, coverage, laydown, transfer efficiency, and ink cost must be greater than zero.');
+                }
+
+                const process = document.getElementById('inkPrintingProcess').value;
+                const paperType = document.getElementById('inkPaperType').value;
+                const colorMode = document.getElementById('inkColorMode').value;
+                const sideCount = document.getElementById('inkSideCount').value;
+                const inkType = document.getElementById('inkType').value;
+                const areaSqM = getInkSheetArea();
+
+                const sideMultiplier = sideCount === 'double' ? 2 : 1;
+                const colorCount = colorMode === 'cmyk' ? 4 : colorMode === '2color' ? 2 : 1;
+
+                const processFactors = {
+                    offset: 1,
+                    flexography: 1.12,
+                    gravure: 1.18,
+                    digital: 0.86
+                };
+                const paperFactors = {
+                    plain: 1,
+                    coated: 1.08,
+                    art: 1.12,
+                    kraft: 0.94,
+                    paperboard: 1.15
+                };
+                const inkTypeFactors = {
+                    water: 0.96,
+                    solvent: 1.05,
+                    uv: 1.18
+                };
+
+                const printedAreaSqM = areaSqM * quantity * sideMultiplier;
+                const theoreticalInkKg = (printedAreaSqM * laydown * (coverage / 100) * colorCount) / 1000;
+                const adjustedInkKg = theoreticalInkKg
+                    * (processFactors[process] || 1)
+                    * (paperFactors[paperType] || 1)
+                    * (inkTypeFactors[inkType] || 1)
+                    / (transferEfficiency / 100);
+                const wasteInkKg = adjustedInkKg * (wastage / 100);
+                const totalInkKg = adjustedInkKg + wasteInkKg + setupKg;
+
+                const rawInkCost = totalInkKg * inkCostPerKg;
+                const setupCost = getInkNumberValue('inkSetupCost');
+                const additivesCost = getInkNumberValue('inkAdditivesCost');
+                const overheadCost = (rawInkCost + setupCost + additivesCost) * (getInkNumberValue('inkOverheadPercent') / 100);
+                const totalCost = rawInkCost + setupCost + additivesCost + overheadCost;
+                const costPerUnit = totalCost / quantity;
+
+                const rows = [
+                    { label: 'Ink Material', value: rawInkCost },
+                    { label: 'Setup / Labor', value: setupCost },
+                    { label: 'Additives / Solvent', value: additivesCost },
+                    { label: 'Overhead', value: overheadCost }
+                ];
+
+                document.getElementById('inkBreakdownTable').innerHTML = rows.map((row) => {
+                    const percent = totalCost > 0 ? (row.value / totalCost) * 100 : 0;
+                    return `
+                        <tr>
+                            <td>${row.label}</td>
+                            <td class="amount-col">${formatInkCurrency(row.value)}</td>
+                            <td class="percent-col">${percent.toFixed(1)}%</td>
+                        </tr>
+                    `;
+                }).join('') + `
+                    <tr>
+                        <td>Total Ink Used</td>
+                        <td class="amount-col">${totalInkKg.toFixed(2)} kg</td>
+                        <td class="percent-col">-</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td>Total</td>
+                        <td class="amount-col">${formatInkCurrency(totalCost)}</td>
+                        <td class="percent-col">100%</td>
+                    </tr>
+                `;
+
+                document.getElementById('inkTotalCost').textContent = formatInkCurrency(totalCost);
+                document.getElementById('inkCostPerUnit').textContent = `Cost per Unit: ${formatInkCurrency(costPerUnit)}`;
+            } catch (error) {
+                resetInkResults();
+                showInkError(error.message || 'Unable to calculate ink cost.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('inkForm');
+            updateInkPageSizeFields();
+
+            form?.addEventListener('reset', function () {
+                window.setTimeout(function () {
+                    updateInkPageSizeFields();
+                    resetInkResults();
+                }, 0);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -310,6 +310,7 @@
             font-weight: 700;
         }
 
+
         .breakdown-table {
             width: 100%;
             border-collapse: collapse;
@@ -412,6 +413,8 @@
             <a href="/">Home</a>
             <a href="Printing.html">Printing Estimation</a>
             <a href="Packaging.html">Packaging Estimation</a>
+            <a href="paper.html">Paper Estimation</a>
+            <a href="ink.html">Ink Estimation</a>
             <a href="/#about">About</a>
             <a href="/#contact">Contact Us</a>
         </div>
@@ -647,5 +650,221 @@
     </footer>
 
     <script src="script.js"></script>
+    <script>
+        function getPrintingNumberValue(id) {
+            const element = document.getElementById(id);
+            return Number.parseFloat(element?.value || '0') || 0;
+        }
+
+        function formatPrintingCurrency(value) {
+            return `Rs${value.toFixed(2)}`;
+        }
+
+        function showPrintingError(message) {
+            const box = document.getElementById('printingError');
+            box.textContent = message;
+            box.classList.add('show');
+        }
+
+        function clearPrintingError() {
+            const box = document.getElementById('printingError');
+            box.textContent = '';
+            box.classList.remove('show');
+        }
+
+        function resetPrintingResults() {
+            document.getElementById('printingTotalCost').textContent = 'Rs0.00';
+            document.getElementById('printingCostPerUnit').textContent = 'Cost per Unit: Rs0.00';
+            document.getElementById('printingBreakdownTable').innerHTML = '';
+            clearPrintingError();
+        }
+
+        function updateProcessFields() {
+            const process = document.getElementById('printProcess')?.value;
+            const offsetFields = document.getElementById('offsetFields');
+            const offsetInputs = document.querySelectorAll('.offset-field');
+            const isOffset = process === 'offset';
+
+            offsetFields.classList.toggle('hidden', !isOffset);
+            offsetInputs.forEach((input) => {
+                input.required = isOffset;
+                input.disabled = !isOffset;
+            });
+        }
+
+        function updatePaperSizeFields() {
+            const isCustom = document.getElementById('paperSize')?.value === 'custom';
+            const customFields = document.getElementById('customPaperSizeFields');
+            const width = document.getElementById('customPaperWidth');
+            const height = document.getElementById('customPaperHeight');
+
+            customFields.style.display = isCustom ? 'grid' : 'none';
+            width.required = isCustom;
+            height.required = isCustom;
+            width.disabled = !isCustom;
+            height.disabled = !isCustom;
+        }
+
+        function getSelectedPrintingValue(name, fallback = '') {
+            return document.querySelector(`input[name="${name}"]:checked`)?.value || fallback;
+        }
+
+        function getPrintingSheetArea() {
+            const presetSizes = {
+                a1: { width: 594, height: 841 },
+                a2: { width: 420, height: 594 },
+                a3: { width: 297, height: 420 },
+                a4: { width: 210, height: 297 },
+                a5: { width: 148, height: 210 },
+                a6: { width: 105, height: 148 }
+            };
+
+            const paperSize = document.getElementById('paperSize').value;
+            let size = presetSizes[paperSize];
+
+            if (paperSize === 'custom') {
+                size = {
+                    width: getPrintingNumberValue('customPaperWidth'),
+                    height: getPrintingNumberValue('customPaperHeight')
+                };
+            }
+
+            if (!size || size.width <= 0 || size.height <= 0) {
+                throw new Error('Select a valid paper size for the printing estimate.');
+            }
+
+            return (size.width / 1000) * (size.height / 1000);
+        }
+
+        function calculatePrintingCost() {
+            try {
+                clearPrintingError();
+
+                const productType = document.getElementById('productType').value;
+                const printProcess = document.getElementById('printProcess').value;
+                const quantity = getPrintingNumberValue('quantity');
+                const pages = getPrintingNumberValue('numPages');
+
+                if (!productType || !printProcess) {
+                    throw new Error('Select the product type and printing process.');
+                }
+
+                if (printProcess !== 'offset') {
+                    throw new Error('This estimator currently supports offset jobs only on this page.');
+                }
+
+                if (quantity <= 0 || pages <= 0) {
+                    throw new Error('Quantity and number of pages must be greater than zero.');
+                }
+
+                const paperType = document.getElementById('paperType').value;
+                const gsm = getPrintingNumberValue('paperGSM');
+                const colorMode = document.getElementById('colorMode').value;
+                const inkType = document.getElementById('offsetInkType').value;
+
+                if (!paperType || !gsm || !colorMode || !inkType) {
+                    throw new Error('Complete the offset printing specifications before calculating.');
+                }
+
+                const impressionsPerUnit = Math.max(Math.ceil(pages / 2), 1);
+                const printSide = getSelectedPrintingValue('printSide', 'single');
+                const sideMultiplier = printSide === 'double' ? 2 : 1;
+                const lamination = getSelectedPrintingValue('lamination', 'none');
+                const sheetAreaSqM = getPrintingSheetArea();
+
+                const paperRates = { plain: 62, art: 84, coated: 89, bond: 70 };
+                const colorMultipliers = { bw: 1, '2color': 1.55, cmyk: 2.35 };
+                const inkMultipliers = { 'oil-based': 1, uv: 1.25, 'soy-based': 1.08 };
+                const productComplexity = {
+                    document: 1,
+                    brochure: 1.12,
+                    poster: 1.08,
+                    magazine: 1.2,
+                    flyer: 0.95,
+                    'business-card': 0.9,
+                    booklet: 1.15,
+                    book: 1.25
+                };
+
+                const totalSheets = quantity * impressionsPerUnit;
+                const wasteSheets = Math.ceil(totalSheets * 0.05);
+                const effectiveSheets = totalSheets + wasteSheets;
+                const paperWeightKg = effectiveSheets * sheetAreaSqM * gsm / 1000;
+                const paperCost = paperWeightKg * (paperRates[paperType] || paperRates.plain);
+
+                const basePrintCost = (effectiveSheets / 1000) * 650 * sideMultiplier;
+                const colorCost = basePrintCost * ((colorMultipliers[colorMode] || 1) - 1);
+                const inkCost = (effectiveSheets / 1000) * 190 * (inkMultipliers[inkType] || 1);
+                const plateCost = 850 * (colorMode === 'cmyk' ? 4 : colorMode === '2color' ? 2 : 1);
+
+                const bindingCosts = [
+                    document.getElementById('bindingSaddle').checked ? quantity * 1.2 : 0,
+                    document.getElementById('bindingPerfect').checked ? quantity * 4.5 : 0,
+                    document.getElementById('bindingSpiral').checked ? quantity * 6.5 : 0
+                ];
+                const bindingCost = bindingCosts.reduce((sum, value) => sum + value, 0);
+
+                const laminationRates = { none: 0, gloss: 6, matte: 8 };
+                const coverRates = { none: 0, cardboard: 4, hardcover: 18, thick: 7, thin: 3 };
+                const laminationCost = quantity * (laminationRates[lamination] || 0);
+                const coverCost = quantity * (coverRates[document.getElementById('coverType').value] || 0);
+
+                const setupCost = 900;
+                const finishingCost = quantity * 0.75;
+                const subtotal = paperCost + basePrintCost + colorCost + inkCost + plateCost + bindingCost + laminationCost + coverCost + setupCost + finishingCost;
+                const totalCost = subtotal * (productComplexity[productType] || 1);
+                const unitCost = totalCost / quantity;
+
+                const rows = [
+                    { label: 'Paper', value: paperCost },
+                    { label: 'Press Run', value: basePrintCost + colorCost },
+                    { label: 'Ink', value: inkCost },
+                    { label: 'Plates', value: plateCost },
+                    { label: 'Binding', value: bindingCost },
+                    { label: 'Lamination', value: laminationCost },
+                    { label: 'Cover', value: coverCost },
+                    { label: 'Setup & Finishing', value: setupCost + finishingCost }
+                ];
+
+                const table = document.getElementById('printingBreakdownTable');
+                table.innerHTML = rows.map((row) => {
+                    const percent = totalCost > 0 ? (row.value / totalCost) * 100 : 0;
+                    return `
+                        <tr>
+                            <td>${row.label}</td>
+                            <td class="amount-col">${formatPrintingCurrency(row.value)}</td>
+                            <td class="percent-col">${percent.toFixed(1)}%</td>
+                        </tr>
+                    `;
+                }).join('') + `
+                    <tr class="total-row">
+                        <td>Total</td>
+                        <td class="amount-col">${formatPrintingCurrency(totalCost)}</td>
+                        <td class="percent-col">100%</td>
+                    </tr>
+                `;
+
+                document.getElementById('printingTotalCost').textContent = formatPrintingCurrency(totalCost);
+                document.getElementById('printingCostPerUnit').textContent = `Cost per Unit: ${formatPrintingCurrency(unitCost)}`;
+            } catch (error) {
+                resetPrintingResults();
+                showPrintingError(error.message || 'Unable to calculate printing cost.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('printingForm');
+            updateProcessFields();
+            updatePaperSizeFields();
+
+            form?.addEventListener('reset', function () {
+                window.setTimeout(function () {
+                    updateProcessFields();
+                    updatePaperSizeFields();
+                    resetPrintingResults();
+                }, 0);
+            });
+        });
+    </script>
 </body>
 </html>

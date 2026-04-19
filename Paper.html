@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paper Cost Estimation - ADR</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --pack-primary: #1f3c5b;
+            --pack-secondary: #2e6fa3;
+            --pack-accent: #4fa3ff;
+            --pack-surface: #ffffff;
+            --pack-muted: #5d7489;
+            --pack-border: #d6e2ee;
+            --pack-bg: #f7f9fc;
+            --pack-shadow: 0 16px 34px rgba(24, 56, 88, 0.12);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background:
+                radial-gradient(900px 320px at 0% -5%, rgba(79, 163, 255, 0.18), transparent 62%),
+                radial-gradient(900px 340px at 100% 0%, rgba(46, 111, 163, 0.15), transparent 60%),
+                var(--pack-bg);
+            color: #17334d;
+        }
+
+        .navbar {
+            width: 100%;
+            margin: 0;
+            border-radius: 0;
+        }
+
+        .page-hero {
+            width: 100%;
+            background: linear-gradient(135deg, #173553 0%, #1f3c5b 48%, #2e6fa3 100%);
+            color: #eef7ff;
+            text-align: center;
+            padding: 82px 20px;
+        }
+
+        .page-hero h1 {
+            margin: 0;
+            font-size: clamp(2rem, 1.3rem + 1.8vw, 3.1rem);
+            letter-spacing: -0.02em;
+        }
+
+        .page-hero p {
+            margin: 14px auto 0;
+            max-width: 760px;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: rgba(238, 247, 255, 0.9);
+        }
+
+        .packaging-page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 80px 20px;
+        }
+
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr);
+            gap: 28px;
+            align-items: start;
+        }
+
+        .form-pane {
+            background: var(--pack-surface);
+            border: 1px solid var(--pack-border);
+            border-radius: 16px;
+            box-shadow: var(--pack-shadow);
+            padding: 30px;
+        }
+
+        .form-section {
+            margin-bottom: 60px;
+            padding-left: 18px;
+            border-left: 4px solid rgba(79, 163, 255, 0.8);
+        }
+
+        .form-section:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            margin: 0 0 24px;
+            color: var(--pack-primary);
+            font-size: 1.08rem;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #dbe7f2;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-grid-two {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 8px;
+            color: #2f4e68;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 13px 14px;
+            border: 1px solid #c9d9e7;
+            border-radius: 8px;
+            background: #fbfdff;
+            font-size: 0.94rem;
+            color: #17334d;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--pack-accent);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(79, 163, 255, 0.2);
+        }
+
+        .process-fields {
+            margin-top: 16px;
+            padding: 18px;
+            border: 1px solid #d6e4f1;
+            border-left: 4px solid var(--pack-secondary);
+            border-radius: 10px;
+            background: linear-gradient(180deg, #f8fbff 0%, #f2f8ff 100%);
+        }
+
+        .process-fields.hidden {
+            display: none;
+        }
+
+        .subsection-title {
+            margin: 0 0 16px;
+            color: var(--pack-primary);
+            font-size: 0.86rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .button-group {
+            margin-top: 34px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 13px 22px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1f5f99 0%, #2e84d5 100%);
+            color: #ffffff;
+            box-shadow: 0 10px 20px rgba(31, 95, 153, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 26px rgba(31, 95, 153, 0.36);
+        }
+
+        .btn-secondary {
+            background: #edf3f9;
+            color: #2f4d67;
+            border: 1px solid #d3e0ec;
+        }
+
+        .btn-secondary:hover {
+            background: #e4edf6;
+        }
+
+        .error-message {
+            display: none;
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border-left: 4px solid #c23b3b;
+            background: #fff0f0;
+            color: #a13131;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .results-container {
+            display: block;
+            position: sticky;
+            top: 96px;
+            background: var(--pack-surface);
+            border: 1px solid var(--pack-border);
+            border-radius: 16px;
+            box-shadow: var(--pack-shadow);
+            padding: 24px;
+        }
+
+        .results-header {
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #dbe7f3;
+        }
+
+        .results-header h2 {
+            margin: 0;
+            color: var(--pack-primary);
+            font-size: 1.25rem;
+            letter-spacing: -0.01em;
+        }
+
+        .total-cost {
+            margin: 12px 0 0;
+            color: #0f2f4d;
+            font-size: 2rem;
+            font-weight: 800;
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: #eaf3ff;
+            border: 1px solid #c7daef;
+        }
+
+        .cost-summary {
+            margin-bottom: 14px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #c8dcef;
+            background: #ffffff;
+        }
+
+        .cost-summary p {
+            margin: 0;
+            color: #1f3f5c;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+
+        .breakdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.87rem;
+        }
+
+        .breakdown-table thead {
+            background: #eef4fb;
+        }
+
+        .breakdown-table th {
+            padding: 10px 8px;
+            text-align: left;
+            color: #244667;
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #d6e4f2;
+        }
+
+        .breakdown-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e3edf7;
+            color: #2d4a65;
+        }
+
+        .breakdown-table .amount-col {
+            text-align: right;
+            font-weight: 700;
+            color: #0f3f6a;
+        }
+
+        .breakdown-table .percent-col {
+            text-align: center;
+            color: #2a4d6a;
+        }
+
+        .breakdown-table .total-row {
+            background: #edf5ff;
+            font-weight: 700;
+        }
+
+        .footer {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .calculator-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .results-container {
+                position: static;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .page-hero {
+                padding: 72px 18px;
+            }
+
+            .packaging-page {
+                padding: 56px 14px;
+            }
+
+            .form-pane,
+            .results-container {
+                padding: 18px;
+            }
+
+            .form-section {
+                margin-bottom: 44px;
+                padding-left: 12px;
+            }
+
+            .form-grid,
+            .form-grid-two {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-logo">ADR</a>
+        <div class="navbar-links">
+            <a href="/">Home</a>
+            <a href="Printing.html">Printing Estimation</a>
+            <a href="Packaging.html">Packaging Estimation</a>
+            <a href="paper.html">Paper Estimation</a>
+            <a href="ink.html">Ink Estimation</a>
+            <a href="/#about">About</a>
+            <a href="/#contact">Contact Us</a>
+        </div>
+    </nav>
+
+    <section class="page-hero">
+        <h1>Paper Cost Estimation</h1>
+        <p>Professional paper cost calculator using the same structured workflow as the packaging estimator.</p>
+    </section>
+
+    <main class="packaging-page">
+        <div class="calculator-layout">
+            <section class="form-pane">
+                <div id="paperError" class="error-message"></div>
+
+                <form id="paperForm">
+                    <div class="form-section">
+                        <h3 class="section-title">Step 1 - Paper Details</h3>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="paperMaterialType">Paper Type *</label>
+                                <select id="paperMaterialType" required>
+                                    <option value="">Select Paper Type</option>
+                                    <option value="plain">Plain Paper</option>
+                                    <option value="art">Art Paper</option>
+                                    <option value="coated">Coated Paper</option>
+                                    <option value="kraft">Kraft Paper</option>
+                                    <option value="duplex">Duplex Board</option>
+                                    <option value="paperboard">Paperboard</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="paperGSM">Paper GSM *</label>
+                                <input type="number" id="paperGSM" min="40" value="150" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="paperQuantity">Quantity (Sheets / Units) *</label>
+                                <input type="number" id="paperQuantity" min="1" value="5000" required>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="paperFlatSize">Flat Size (mm) *</label>
+                                <input type="text" id="paperFlatSize" placeholder="e.g., 700x1000" value="700x1000" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="paperFinishedSize">Finished Size (mm)</label>
+                                <input type="text" id="paperFinishedSize" placeholder="e.g., 680x980" value="680x980">
+                            </div>
+                            <div class="form-group">
+                                <label for="paperWastage">Wastage (%)</label>
+                                <input type="number" id="paperWastage" min="0" max="25" value="5">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">Step 2 - Paper Process Settings</h3>
+
+                        <div class="form-grid form-grid-two">
+                            <div class="form-group">
+                                <label for="paperProcess">Process Type *</label>
+                                <select id="paperProcess" required onchange="updatePaperCostProcessFields()">
+                                    <option value="">Select Process Type</option>
+                                    <option value="sheetfed">Sheetfed</option>
+                                    <option value="rollfed">Roll-Fed</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="paperNumColors">Number of Colors *</label>
+                                <input type="number" id="paperNumColors" min="1" max="8" value="4" required>
+                            </div>
+                        </div>
+
+                        <div id="paperSheetfedFields" class="process-fields hidden">
+                            <div class="subsection-title">Sheetfed Specifications</div>
+
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="paperSheetRate">Sheet Rate (Rs per 1000) *</label>
+                                    <input type="number" id="paperSheetRate" min="1" value="450" class="paper-sheetfed-field" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="paperPlateCost">Plate / Make Ready Cost (Rs) *</label>
+                                    <input type="number" id="paperPlateCost" min="0" value="1800" class="paper-sheetfed-field" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="paperSheetSetupWaste">Setup Waste Sheets</label>
+                                    <input type="number" id="paperSheetSetupWaste" min="0" value="150" class="paper-sheetfed-field">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="paperRollfedFields" class="process-fields hidden">
+                            <div class="subsection-title">Roll-Fed Specifications</div>
+
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="paperReelSetupCost">Reel Setup Cost (Rs) *</label>
+                                    <input type="number" id="paperReelSetupCost" min="0" value="2200" class="paper-rollfed-field" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="paperRollRate">Roll Processing Rate (Rs per 1000) *</label>
+                                    <input type="number" id="paperRollRate" min="1" value="380" class="paper-rollfed-field" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="paperCoreWaste">Core / Trim Waste (%)</label>
+                                    <input type="number" id="paperCoreWaste" min="0" max="15" value="3" class="paper-rollfed-field">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">Step 3 - Handling and Machine Costs</h3>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="paperCuttingCost">Cutting Cost (Rs)</label>
+                                <input type="number" id="paperCuttingCost" min="0" value="1200">
+                            </div>
+                            <div class="form-group">
+                                <label for="paperPackingCost">Packing Cost (Rs)</label>
+                                <input type="number" id="paperPackingCost" min="0" value="900">
+                            </div>
+                            <div class="form-group">
+                                <label for="paperTransportCost">Transport / Loading (Rs)</label>
+                                <input type="number" id="paperTransportCost" min="0" value="600">
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="paperMachineSetupTime">Machine Setup Time (minutes)</label>
+                                <input type="number" id="paperMachineSetupTime" min="0" value="30">
+                            </div>
+                            <div class="form-group">
+                                <label for="paperMachineRunTime">Machine Run Time per Unit (seconds)</label>
+                                <input type="number" id="paperMachineRunTime" min="0" value="4">
+                            </div>
+                            <div class="form-group">
+                                <label for="paperMachineHourlyRate">Machine Hourly Rate (Rs)</label>
+                                <input type="number" id="paperMachineHourlyRate" min="100" value="1000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn btn-primary" onclick="calculatePaperCost()">Calculate Cost</button>
+                        <button type="reset" class="btn btn-secondary">Clear Form</button>
+                    </div>
+                </form>
+            </section>
+
+            <aside id="paperResults" class="results-container">
+                <div class="results-header">
+                    <h2>Cost Summary</h2>
+                    <div class="total-cost" id="paperTotalCost">Rs0.00</div>
+                </div>
+
+                <div class="cost-summary">
+                    <p id="paperCostPerUnit">Cost per Unit: Rs0.00</p>
+                </div>
+
+                <table class="breakdown-table">
+                    <thead>
+                        <tr>
+                            <th>Cost Category</th>
+                            <th>Amount</th>
+                            <th>%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paperBreakdownTable"></tbody>
+                </table>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <h4>ADR Printing &amp; Packaging Cost Estimation System</h4>
+        <p>Professional MIS frontend for accurate cost calculations | &copy; 2026</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        function getPaperNumberValue(id) {
+            const element = document.getElementById(id);
+            return Number.parseFloat(element?.value || '0') || 0;
+        }
+
+        function parsePaperSize(sizeText) {
+            const cleaned = (sizeText || '').trim().toLowerCase();
+            const parts = cleaned.split('x').map((part) => Number.parseFloat(part.trim()));
+
+            if (parts.length !== 2 || parts.some((part) => !Number.isFinite(part) || part <= 0)) {
+                throw new Error('Enter paper sizes in the format WidthxHeight, for example 700x1000.');
+            }
+
+            return {
+                width: parts[0],
+                height: parts[1]
+            };
+        }
+
+        function formatPaperCurrency(value) {
+            return `Rs${value.toFixed(2)}`;
+        }
+
+        function showPaperError(message) {
+            const errorBox = document.getElementById('paperError');
+            errorBox.textContent = message;
+            errorBox.classList.add('show');
+        }
+
+        function clearPaperError() {
+            const errorBox = document.getElementById('paperError');
+            errorBox.textContent = '';
+            errorBox.classList.remove('show');
+        }
+
+        function updatePaperCostProcessFields() {
+            const processType = document.getElementById('paperProcess')?.value;
+            const sheetfedFields = document.getElementById('paperSheetfedFields');
+            const rollfedFields = document.getElementById('paperRollfedFields');
+
+            const sheetfedInputs = document.querySelectorAll('.paper-sheetfed-field');
+            const rollfedInputs = document.querySelectorAll('.paper-rollfed-field');
+
+            const isSheetfed = processType === 'sheetfed';
+            const isRollfed = processType === 'rollfed';
+
+            sheetfedFields.classList.toggle('hidden', !isSheetfed);
+            rollfedFields.classList.toggle('hidden', !isRollfed);
+
+            sheetfedInputs.forEach((input) => {
+                input.required = isSheetfed;
+                input.disabled = !isSheetfed;
+            });
+
+            rollfedInputs.forEach((input) => {
+                input.required = isRollfed;
+                input.disabled = !isRollfed;
+            });
+        }
+
+        function resetPaperResults() {
+            document.getElementById('paperTotalCost').textContent = 'Rs0.00';
+            document.getElementById('paperCostPerUnit').textContent = 'Cost per Unit: Rs0.00';
+            document.getElementById('paperBreakdownTable').innerHTML = '';
+            clearPaperError();
+        }
+
+        function calculatePaperCost() {
+            try {
+                clearPaperError();
+
+                const paperType = document.getElementById('paperMaterialType').value;
+                const quantity = getPaperNumberValue('paperQuantity');
+                const gsm = getPaperNumberValue('paperGSM');
+                const wastagePercent = getPaperNumberValue('paperWastage');
+                const colorCount = getPaperNumberValue('paperNumColors');
+                const processType = document.getElementById('paperProcess').value;
+                const flatSize = parsePaperSize(document.getElementById('paperFlatSize').value);
+
+                if (!paperType) {
+                    throw new Error('Select a paper type.');
+                }
+
+                if (!processType) {
+                    throw new Error('Select a process type.');
+                }
+
+                if (quantity <= 0 || gsm <= 0 || colorCount <= 0) {
+                    throw new Error('Quantity, GSM, and number of colors must be greater than zero.');
+                }
+
+                const paperRateByType = {
+                    plain: 64,
+                    art: 82,
+                    coated: 88,
+                    kraft: 58,
+                    duplex: 72,
+                    paperboard: 96
+                };
+
+                const areaSqM = (flatSize.width / 1000) * (flatSize.height / 1000);
+                const setupWasteSheets = processType === 'sheetfed' ? getPaperNumberValue('paperSheetSetupWaste') : 0;
+                const processWastePercent = processType === 'rollfed' ? getPaperNumberValue('paperCoreWaste') : 0;
+                const totalSheets = Math.ceil(
+                    quantity * (1 + (wastagePercent + processWastePercent) / 100) + setupWasteSheets
+                );
+
+                const weightPerSheetKg = areaSqM * gsm / 1000;
+                const totalPaperWeightKg = totalSheets * weightPerSheetKg;
+                const materialCost = totalPaperWeightKg * (paperRateByType[paperType] || paperRateByType.plain);
+
+                let processCost = 0;
+                if (processType === 'sheetfed') {
+                    const sheetRate = getPaperNumberValue('paperSheetRate');
+                    const plateCost = getPaperNumberValue('paperPlateCost');
+                    processCost = (totalSheets / 1000) * sheetRate + plateCost;
+                } else {
+                    const reelSetupCost = getPaperNumberValue('paperReelSetupCost');
+                    const rollRate = getPaperNumberValue('paperRollRate');
+                    processCost = (totalSheets / 1000) * rollRate + reelSetupCost;
+                }
+
+                const cuttingCost = getPaperNumberValue('paperCuttingCost');
+                const packingCost = getPaperNumberValue('paperPackingCost');
+                const transportCost = getPaperNumberValue('paperTransportCost');
+
+                const setupHours = getPaperNumberValue('paperMachineSetupTime') / 60;
+                const runHours = (quantity * getPaperNumberValue('paperMachineRunTime')) / 3600;
+                const machineHourlyRate = getPaperNumberValue('paperMachineHourlyRate');
+                const machineCost = (setupHours + runHours) * machineHourlyRate;
+
+                const colorSurcharge = processCost * Math.max(colorCount - 1, 0) * 0.06;
+                const totalCost = materialCost + processCost + colorSurcharge + cuttingCost + packingCost + transportCost + machineCost;
+                const costPerUnit = totalCost / quantity;
+
+                const rows = [
+                    { label: 'Paper Material', value: materialCost },
+                    { label: 'Process Cost', value: processCost },
+                    { label: 'Color Load', value: colorSurcharge },
+                    { label: 'Machine Cost', value: machineCost },
+                    { label: 'Cutting', value: cuttingCost },
+                    { label: 'Packing', value: packingCost },
+                    { label: 'Transport', value: transportCost }
+                ];
+
+                const breakdownTable = document.getElementById('paperBreakdownTable');
+                breakdownTable.innerHTML = rows.map((row) => {
+                    const percent = totalCost > 0 ? (row.value / totalCost) * 100 : 0;
+                    return `
+                        <tr>
+                            <td>${row.label}</td>
+                            <td class="amount-col">${formatPaperCurrency(row.value)}</td>
+                            <td class="percent-col">${percent.toFixed(1)}%</td>
+                        </tr>
+                    `;
+                }).join('') + `
+                    <tr class="total-row">
+                        <td>Total</td>
+                        <td class="amount-col">${formatPaperCurrency(totalCost)}</td>
+                        <td class="percent-col">100%</td>
+                    </tr>
+                `;
+
+                document.getElementById('paperTotalCost').textContent = formatPaperCurrency(totalCost);
+                document.getElementById('paperCostPerUnit').textContent = `Cost per Unit: ${formatPaperCurrency(costPerUnit)}`;
+            } catch (error) {
+                resetPaperResults();
+                showPaperError(error.message || 'Unable to calculate paper cost. Please review the inputs.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('paperForm');
+
+            if (typeof updatePaperCostProcessFields === 'function') {
+                updatePaperCostProcessFields();
+            }
+
+            form?.addEventListener('reset', function () {
+                window.setTimeout(function () {
+                    updatePaperCostProcessFields();
+                    resetPaperResults();
+                }, 0);
+            });
+        });
+    </script>
+</body>
+</html>
